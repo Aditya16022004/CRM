@@ -14,7 +14,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import routes from './routes/index.js';
 import { auditMiddleware } from './middleware/audit.js';
-import { runMigrations } from './db.js';
+import { runMigrations, verifyDbConnection } from './db.js';
 import { AuthService } from './services/authService.js';
 import { initWebSocket } from './realtime/websocket.js';
 
@@ -106,6 +106,12 @@ app.use((req, res) => {
 
 // ============ Start Server ============
 async function startServer() {
+  const dbStatus = await verifyDbConnection();
+  if (!dbStatus.ok) {
+    console.error('Failed to connect to database. Check DATABASE_URL and database availability.');
+    process.exit(1);
+  }
+
   await runMigrations();
   await AuthService.ensureSuperAdmin();
 

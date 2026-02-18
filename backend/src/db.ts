@@ -17,6 +17,16 @@ const connectionString =
 
 const pool = new Pool({ connectionString });
 
+function redactedConnectionString() {
+  try {
+    const url = new URL(connectionString);
+    if (url.password) url.password = '***';
+    return url.toString();
+  } catch {
+    return '[invalid DATABASE_URL]';
+  }
+}
+
 // Map the column names PostgreSQL returns (all lower-case by default) to the
 // camelCase names the rest of the codebase expects. We keep the original keys
 // and add camelCase aliases so existing usages continue to work.
@@ -156,6 +166,17 @@ export async function getDb(): Promise<DbClient> {
   const client = await getClient();
   dbInstance = createDb(client);
   return dbInstance;
+}
+
+export async function verifyDbConnection() {
+  try {
+    const db = await getDb();
+    await db.get('SELECT 1');
+    return { ok: true, connection: redactedConnectionString() };
+  } catch (error) {
+    console.error('Database connection failed:', error);
+    return { ok: false, connection: redactedConnectionString(), error };
+  }
 }
 
 export async function runMigrations() {

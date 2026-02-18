@@ -179,6 +179,7 @@ export class InventoryController {
 
     const existing = mapDevice(row);
     const {
+      name = existing.name,
       description = existing.description,
       unit = existing.unit,
       category = existing.category,
@@ -191,6 +192,7 @@ export class InventoryController {
 
     const updated: InventoryItem = {
       ...existing,
+      name,
       description,
       unit,
       category,
@@ -207,6 +209,7 @@ export class InventoryController {
 
     await db.run(
       `UPDATE devices SET
+        name = ?,
         description = ?,
         unit = ?,
         category = ?,
@@ -217,6 +220,7 @@ export class InventoryController {
         specifications = ?,
         updatedAt = ?
       WHERE id = ?`,
+      updated.name ?? null,
       updated.description ?? null,
       updated.unit ?? null,
       updated.category ?? null,

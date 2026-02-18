@@ -332,72 +332,63 @@ export function DevicesPage() {
                 <label className="block text-sm font-medium text-slate-700 mb-2">
                   Device Name *
                 </label>
-                <select
+
+                {!editingDevice && (
+                  <select
                     disabled={viewOnly}
                     className="input h-10 bg-slate-50 focus:bg-white transition-colors mb-2 disabled:opacity-70"
-                  value={selectedDeviceName}
-                  onChange={(e) => {
-                    const value = e.target.value;
-                    setSelectedDeviceName(value);
-                      if (!value || viewOnly) return;
-                    const match = devicesData?.find(
-                      (device: Device) => device.name === value
-                    );
-                    if (match) {
-                      setEditingDevice(match);
-                      setFormData({
-                        name: match.name,
-                        make: match.make,
-                        model: match.model,
-                        category: match.category,
-                        description: match.description || '',
-                        unit: match.unit || 'Unit',
-                        unitCost: match.unitCost,
-                        unitPrice: match.unitPrice,
-                        specifications: match.specifications || {},
-                      });
-                    }
-                    setSelectedDeviceName('');
-                  }}
-                >
-                  <option value="">Select existing device (optional)</option>
-                  {(devicesData || []).map((device: Device) => (
-                    <option key={device.id} value={device.name}>
-                      {device.name}
-                    </option>
-                  ))}
-                </select>
+                    value={selectedDeviceName}
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      setSelectedDeviceName(value);
+                      if (!value || viewOnly) {
+                        return;
+                      }
+                      const match = devicesData?.find(
+                        (device: Device) => device.name === value
+                      );
+                      if (match) {
+                        // Prefill from existing device as a template; stay in create mode
+                        setEditingDevice(null);
+                        setFormData({
+                          name: match.name,
+                          make: match.make,
+                          model: match.model,
+                          category: match.category,
+                          description: match.description || '',
+                          unit: match.unit || 'Unit',
+                          unitCost: match.unitCost,
+                          unitPrice: match.unitPrice,
+                          specifications: match.specifications || {},
+                        });
+                      }
+                    }}
+                  >
+                    <option value="">Select existing device (optional)</option>
+                    {(devicesData || []).map((device: Device) => (
+                      <option key={device.id} value={device.name}>
+                        {device.name}
+                      </option>
+                    ))}
+                  </select>
+                )}
+
                 <Input
                   disabled={viewOnly}
                   value={formData.name}
                   onChange={(e) => {
                     if (viewOnly) return;
                     const value = e.target.value;
-                    const match = devicesData?.find(
-                      (device: Device) =>
-                        device.name.toLowerCase() === value.toLowerCase()
-                    );
-
-                    if (match) {
-                      setFormData({
-                        name: match.name,
-                        make: match.make,
-                        model: match.model,
-                        category: match.category,
-                        description: match.description || '',
-                        unit: match.unit || 'Unit',
-                        unitCost: match.unitCost,
-                        unitPrice: match.unitPrice,
-                        specifications: match.specifications || {},
-                      });
-                      return;
-                    }
-
                     setFormData({ ...formData, name: value });
                   }}
                   placeholder="e.g. SITC of 5 MP Dome cameras - I-HIPD5PI-MF"
                   required
                 />
+                {selectedDeviceName && !editingDevice && (
+                  <p className="text-xs text-slate-600 mt-1">
+                    Loaded from an existing device as a starting point. Submitting will create a new device.
+                  </p>
+                )}
               </div>
               <div className="grid grid-cols-2 gap-4">
               <div>

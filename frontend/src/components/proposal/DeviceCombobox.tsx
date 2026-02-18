@@ -68,9 +68,9 @@ export function DeviceCombobox({
         </Button>
 
         {open && (
-          <div className="absolute z-50 mt-2 w-full rounded-xl border border-slate-200 bg-white shadow-xl animate-scale-in">
-            <Command className="max-h-[400px] overflow-hidden">
-              <div className="flex items-center border-b border-slate-200 px-3 bg-slate-50">
+          <div className="absolute z-50 mt-2 w-full rounded-xl border border-slate-200 bg-white shadow-xl animate-scale-in max-h-[70vh] overflow-hidden">
+            <Command className="max-h-[70vh] overflow-hidden">
+              <div className="flex items-center border-b border-slate-200 px-3 bg-slate-50 sticky top-0 z-10">
                 <Search className="mr-2 h-4 w-4 shrink-0 text-slate-400" />
                 <input
                   className="flex h-11 w-full rounded-md bg-transparent py-3 text-sm outline-none placeholder:text-slate-500 disabled:cursor-not-allowed disabled:opacity-50 focus:bg-white transition-colors"
@@ -80,7 +80,7 @@ export function DeviceCombobox({
                 />
               </div>
 
-              <div className="max-h-[300px] overflow-y-auto scrollbar-thin p-1.5">
+              <div className="max-h-[60vh] overflow-y-auto scrollbar-thin p-1.5 pr-2">
                 {filteredDevices.length === 0 ? (
                   <div className="py-8 text-center text-sm text-slate-500">
                     No devices found.
