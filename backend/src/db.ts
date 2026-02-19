@@ -5,11 +5,12 @@ import { Pool, PoolClient } from 'pg';
 import dotenv from 'dotenv';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const rootDir = path.resolve(__dirname, '..');
-const migrationsDir = path.join(rootDir, 'migrations');
+const backendDir = path.resolve(__dirname, '..');
+const rootEnvPath = path.resolve(backendDir, '..', '.env');
+const migrationsDir = path.join(backendDir, 'migrations');
 
-// Load environment variables early so connectionString picks up .env
-dotenv.config({ path: path.join(rootDir, '.env') });
+// Load environment variables early so connectionString picks up repo-root .env
+dotenv.config({ path: rootEnvPath });
 
 const connectionString =
   process.env.DATABASE_URL ||
