@@ -15,10 +15,10 @@ const JWT_EXPIRY = (process.env.JWT_EXPIRY || '15m') as SignOptions['expiresIn']
 const JWT_REFRESH_EXPIRY = (process.env.JWT_REFRESH_EXPIRY || '7d') as SignOptions['expiresIn'];
 
 const SUPERADMIN_EMAIL =
-  process.env.SUPERADMIN_EMAIL || 'tripathiaditya149@gmail.com';
-const SUPERADMIN_PASSWORD = process.env.SUPERADMIN_PASSWORD || 'Aditya123';
-const SUPERADMIN_FIRST_NAME = process.env.SUPERADMIN_FIRST_NAME || 'Aditya';
-const SUPERADMIN_LAST_NAME = process.env.SUPERADMIN_LAST_NAME || 'Tripathi';
+  process.env.SUPERADMIN_EMAIL || 'your_email';
+const SUPERADMIN_PASSWORD = process.env.SUPERADMIN_PASSWORD || 'your_password';
+const SUPERADMIN_FIRST_NAME = process.env.SUPERADMIN_FIRST_NAME || 'FirstName';
+const SUPERADMIN_LAST_NAME = process.env.SUPERADMIN_LAST_NAME || 'LastName';
 
 interface TokenPayload {
   userId: string;
