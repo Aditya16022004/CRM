@@ -201,6 +201,10 @@ export function ProposalPDF({
     .split(/\r?\n/)
     .map((line) => line.trim())
     .filter(Boolean);
+
+  const stripListPrefix = (line: string) =>
+    line.replace(/^\s*(?:\d+[.)]\s+|[\-•*]\s+)/, '');
+
   let termCounter = 0;
   let useNumbering = true;
 
@@ -459,6 +463,10 @@ export function ProposalPDF({
           const isHeading = line.endsWith(':');
           if (isHeading) {
             const headingText = line.replace(/:$/, '');
+            // The page already prints a main section heading above.
+            if (/^terms\s*&?\s*conditions$/i.test(headingText)) {
+              return null;
+            }
             if (/technical/i.test(headingText)) {
               useNumbering = false;
               termCounter = 0;
@@ -474,10 +482,11 @@ export function ProposalPDF({
           }
 
           const bulletLabel = useNumbering ? `${++termCounter}. ` : '• ';
+          const normalizedLine = stripListPrefix(line);
           return (
             <Text key={`term-${idx}`} style={styles.listItem}>
               <Text style={styles.listBullet}>{bulletLabel}</Text>
-              {line}
+              {normalizedLine}
             </Text>
           );
         })}

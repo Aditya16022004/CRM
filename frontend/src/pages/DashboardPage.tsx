@@ -5,7 +5,7 @@
 
 import { useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { FileText, Users, DollarSign, Package } from 'lucide-react';
+import { FileText, Users, IndianRupee, Package } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '@/lib/api';
@@ -27,13 +27,22 @@ export function DashboardPage() {
     refetchInterval: 10000,
   });
 
-  const stats = [
+  const stats: Array<{
+    name: string;
+    value: number | string;
+    icon: typeof Users;
+    color: string;
+    bgColor: string;
+    path?: string;
+    isStatic?: boolean;
+  }> = [
     {
       name: 'Active Clients',
       value: summaryData?.activeClients ?? 0,
       icon: Users,
       color: 'text-primary-600',
       bgColor: 'bg-primary-50',
+      path: '/clients',
     },
     {
       name: 'Active Proposals',
@@ -41,6 +50,7 @@ export function DashboardPage() {
       icon: FileText,
       color: 'text-primary-600',
       bgColor: 'bg-primary-50',
+      path: '/proposals',
     },
     {
       name: 'No. of Devices',
@@ -48,13 +58,15 @@ export function DashboardPage() {
       icon: Package,
       color: 'text-primary-600',
       bgColor: 'bg-primary-50',
+      path: '/devices',
     },
     {
       name: 'Total Value',
-      value: formatCurrency(summaryData?.totalValue ?? 0),
-      icon: DollarSign,
+      value: formatCurrency(summaryData?.totalValue ?? 0, 'INR'),
+      icon: IndianRupee,
       color: 'text-success-600',
       bgColor: 'bg-success-50',
+      isStatic: true,
     },
   ];
 
@@ -85,8 +97,17 @@ export function DashboardPage() {
         {stats.map((stat, index) => (
           <div 
             key={stat.name} 
-            className="card p-6 hover:shadow-md transition-all duration-200 animate-fade-in"
+            className={
+              stat.isStatic
+                ? 'bg-white rounded-xl shadow-sm border border-slate-100 p-6 animate-fade-in'
+                : 'card p-6 cursor-pointer hover:scale-105 transition-all duration-200 animate-fade-in'
+            }
             style={{ animationDelay: `${index * 50}ms` }}
+            onClick={() => {
+              if (!stat.isStatic && stat.path) {
+                navigate(stat.path);
+              }
+            }}
           >
             <div className="flex items-center justify-between mb-4">
               <div className={`${stat.bgColor} p-3 rounded-xl shadow-sm`}>
