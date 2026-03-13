@@ -51,6 +51,9 @@ export function ProposalLineItemsTable() {
                 <th className="px-4 py-3.5 text-center text-xs font-semibold text-white uppercase tracking-wider">
                   Quantity
                 </th>
+                <th className="px-4 py-3.5 text-center text-xs font-semibold text-white uppercase tracking-wider">
+                  UOM
+                </th>
                 <th className="px-4 py-3.5 text-right text-xs font-semibold text-white uppercase tracking-wider">
                   Discount %
                 </th>
@@ -124,6 +127,13 @@ export function ProposalLineItemsTable() {
                         }}
                         className="w-20 text-center tabular-nums h-9 text-sm mx-auto border-slate-200 focus:border-primary-500"
                         min="1"
+                      />
+                    </td>
+                    <td className="px-4 py-3.5 text-center">
+                      <Input
+                        value={item.uom || 'EA'}
+                        onChange={(e) => updateItem(item.id, { uom: e.target.value.toUpperCase() })}
+                        className="w-20 text-center tabular-nums h-9 text-sm mx-auto border-slate-200 focus:border-primary-500"
                       />
                     </td>
                     <td className="px-4 py-3.5 text-right">

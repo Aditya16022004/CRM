@@ -72,44 +72,55 @@ const styles = StyleSheet.create({
   divider: { height: 1, backgroundColor: colors.border, marginVertical: 12 },
   tableContainer: {
     marginTop: 12,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: 6,
+    borderWidth: 1.2,
+    borderColor: '#111827',
+    borderRadius: 0,
     overflow: 'hidden',
   },
   tableHeaderRow: {
     flexDirection: 'row',
-    backgroundColor: '#F3F4F6',
+    backgroundColor: '#EFEFEF',
     borderBottomWidth: 1,
-    borderBottomColor: colors.border,
+    borderBottomColor: '#111827',
   },
-  tableHeaderText: { fontSize: 9, fontWeight: 800, color: colors.dark },
+  tableHeaderText: { fontSize: 8, fontWeight: 800, color: colors.dark, textTransform: 'uppercase' },
+  tableSubHeader: {
+    fontSize: 7,
+    fontWeight: 700,
+    color: colors.dark,
+    textAlign: 'center',
+    backgroundColor: '#F8F8F8',
+    paddingVertical: 2,
+    borderBottomWidth: 1,
+    borderBottomColor: '#111827',
+  },
   tableRow: {
     flexDirection: 'row',
     borderBottomWidth: 1,
-    borderBottomColor: colors.border,
+    borderBottomColor: '#111827',
   },
   tableRowLast: { borderBottomWidth: 0 },
-  rowAlt: { backgroundColor: '#F9FAFB' },
+  rowAlt: { backgroundColor: '#FCFCFC' },
   tableCell: {
-    paddingVertical: 8,
-    paddingHorizontal: 6,
+    paddingVertical: 5,
+    paddingHorizontal: 4,
     borderRightWidth: 1,
-    borderRightColor: colors.border,
+    borderRightColor: '#111827',
     justifyContent: 'center',
   },
   tableCellLast: { borderRightWidth: 0 },
-  cellText: { fontSize: 9, color: colors.dark },
-  cellNumber: { fontSize: 9, color: colors.dark, textAlign: 'right' },
+  cellText: { fontSize: 8, color: colors.dark },
+  cellNumber: { fontSize: 8, color: colors.dark, textAlign: 'right' },
+  descriptionText: { fontSize: 7, color: '#374151', lineHeight: 1.25 },
   textLeft: { textAlign: 'left' },
   textCenter: { textAlign: 'center' },
   textRight: { textAlign: 'right' },
   summaryBox: {
     marginTop: 10,
     alignSelf: 'flex-end',
-    width: '52%',
+    width: '54%',
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: '#111827',
   },
   summaryRow: {
     flexDirection: 'row',
@@ -212,14 +223,15 @@ export function ProposalPDF({
     `INR ${amount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
   const columns = [
-    { key: 'sn', label: 'S.N.', width: '8%', align: 'center' as const },
-    { key: 'description', label: 'Description of Items', width: '28%', align: 'left' as const },
-    { key: 'unit', label: 'Unit', width: '8%', align: 'center' as const },
-    { key: 'qty', label: 'Qty', width: '8%', align: 'center' as const },
-    { key: 'rate', label: 'Rate', width: '12%', align: 'right' as const },
-    { key: 'amount', label: 'Amount', width: '14%', align: 'right' as const },
-    { key: 'make', label: 'Make', width: '10%', align: 'left' as const },
-    { key: 'model', label: 'Model No.', width: '12%', align: 'left' as const },
+    { key: 'itemNo', label: 'Item No.', width: '6%', align: 'center' as const },
+    { key: 'item', label: 'Item', width: '16%', align: 'left' as const },
+    { key: 'description', label: 'Item Description', width: '30%', align: 'left' as const },
+    { key: 'qty', label: 'Quantity', width: '7%', align: 'center' as const },
+    { key: 'uom', label: 'UOM', width: '6%', align: 'center' as const },
+    { key: 'make', label: 'Make', width: '11%', align: 'left' as const },
+    { key: 'model', label: 'Model No.', width: '10%', align: 'left' as const },
+    { key: 'rate', label: 'Rate', width: '7%', align: 'right' as const },
+    { key: 'amount', label: 'Amount', width: '7%', align: 'right' as const },
   ];
 
   return (
@@ -339,8 +351,14 @@ export function ProposalPDF({
         <Watermark />
         <Text style={styles.sectionTitle}>SERVICE</Text>
         <Text style={styles.smallMuted}>{proposalName}</Text>
+        {validUntil && (
+          <Text style={[styles.smallMeta, { marginTop: 4, marginBottom: 6 }]}>
+            Proposal validity: {formatDate(createdAt)} to {formatDate(validUntil)}
+          </Text>
+        )}
 
         <View style={styles.tableContainer}>
+          <Text style={styles.tableSubHeader}>SUPPLY AND INSTALLATION OF {proposalName.toUpperCase()}</Text>
           <View style={styles.tableHeaderRow}>
             {columns.map((col, idx) => (
               <View
@@ -381,13 +399,16 @@ export function ProposalPDF({
 
                 switch (col.key) {
                   case 'sn':
+                  case 'itemNo':
                     value = index + 1;
                     break;
-                  case 'description':
+                  case 'item':
                     value = item.name || `${item.make} ${item.model}`;
                     break;
-                  case 'unit':
-                    value = 'Nos';
+                  case 'description':
+                    break;
+                  case 'uom':
+                    value = (item.uom || item.specifications?.uom || 'EA').toUpperCase();
                     break;
                   case 'qty':
                     value = item.quantity;
@@ -427,7 +448,13 @@ export function ProposalPDF({
                           : styles.textLeft,
                       ]}
                     >
-                      {value}
+                      {col.key === 'description' ? (
+                        <Text style={styles.descriptionText}>
+                          {item.specifications?.description || item.specifications?.details || item.name || '-'}
+                        </Text>
+                      ) : (
+                        value
+                      )}
                     </Text>
                   </View>
                 );
@@ -498,7 +525,11 @@ export function ProposalPDF({
           </View>
         )}
 
-        {validUntil && <Text style={styles.smallMuted}>Proposal valid until: {formatDate(validUntil)}</Text>}
+        {validUntil && (
+          <Text style={styles.smallMuted}>
+            Proposal validity period: {formatDate(createdAt)} to {formatDate(validUntil)}
+          </Text>
+        )}
 
         <Footer />
       </Page>

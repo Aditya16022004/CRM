@@ -28,6 +28,7 @@ export function ProposalBuilderPage() {
     name: '',
     make: '',
     model: '',
+    uom: 'EA',
     price: '' as string | number,
     quantity: 1 as string | number,
     discount: '' as string | number,
@@ -44,6 +45,16 @@ export function ProposalBuilderPage() {
   const setProposalTitle = useProposalStore((state) => state.setProposalTitle);
   const createdBy = useProposalStore((state) => state.createdBy);
   const setCreatedBy = useProposalStore((state) => state.setCreatedBy);
+  const validUntil = useProposalStore((state) => state.validUntil);
+  const setValidUntil = useProposalStore((state) => state.setValidUntil);
+
+  const toInputDate = (date: Date | null) => {
+    if (!date) return '';
+    const y = date.getFullYear();
+    const m = String(date.getMonth() + 1).padStart(2, '0');
+    const d = String(date.getDate()).padStart(2, '0');
+    return `${y}-${m}-${d}`;
+  };
 
   // Fetch devices from master catalog
   const { data: devicesData } = useQuery({
@@ -70,6 +81,7 @@ export function ProposalBuilderPage() {
       name: device.name,
       make: device.make,
       model: device.model,
+      uom: device.uom || 'EA',
       price: device.unitPrice,
       specifications: device.specifications,
       quantity: 1,
@@ -93,6 +105,7 @@ export function ProposalBuilderPage() {
       name: newItem.name,
       make: newItem.make,
       model: newItem.model,
+      uom: newItem.uom || 'EA',
       price: price || 0,
       specifications: {},
       quantity: quantity || 1,
@@ -104,6 +117,7 @@ export function ProposalBuilderPage() {
       name: '',
       make: '',
       model: '',
+      uom: 'EA',
       price: '',
       quantity: 1,
       discount: '',
@@ -134,7 +148,10 @@ export function ProposalBuilderPage() {
         snapshotMake: item.make,
         snapshotModel: item.model,
         snapshotPrice: item.price,
-        snapshotSpecs: item.specifications,
+        snapshotSpecs: {
+          ...(item.specifications || {}),
+          uom: item.uom || 'EA',
+        },
         lineTotal: item.lineTotal,
       })),
       taxRate: proposalData.taxRate,
@@ -170,7 +187,10 @@ export function ProposalBuilderPage() {
           snapshotMake: item.make,
           snapshotModel: item.model,
           snapshotPrice: item.price,
-          snapshotSpecs: item.specifications,
+          snapshotSpecs: {
+            ...(item.specifications || {}),
+            uom: item.uom || 'EA',
+          },
           lineTotal: item.lineTotal,
         })),
         taxRate: proposalData.taxRate,
@@ -278,8 +298,28 @@ export function ProposalBuilderPage() {
                 <Input
                   value={createdBy}
                   onChange={(e) => setCreatedBy(e.target.value)}
-                  placeholder="e.g. John Doe - Admin"
+                  placeholder="e.g. Aditya Tripathi - Admin"
                   required
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-2">
+                  Valid Till
+                </label>
+                <Input
+                  type="date"
+                  className="w-50"
+                  value={toInputDate(validUntil)}
+                  min={toInputDate(new Date())}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    if (!value) {
+                      setValidUntil(null);
+                      return;
+                    }
+                    const [year, month, day] = value.split('-').map(Number);
+                    setValidUntil(new Date(year, (month || 1) - 1, day || 1));
+                  }}
                 />
               </div>
             </div>
@@ -340,6 +380,16 @@ export function ProposalBuilderPage() {
                     value={newItem.model}
                     onChange={(e) => setNewItem({ ...newItem, model: e.target.value })}
                     placeholder="e.g. DS-2CD2143G0-I"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-2">
+                    UOM
+                  </label>
+                  <Input
+                    value={newItem.uom}
+                    onChange={(e) => setNewItem({ ...newItem, uom: e.target.value.toUpperCase() })}
+                    placeholder="e.g. EA"
                   />
                 </div>
                 <div>

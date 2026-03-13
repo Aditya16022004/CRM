@@ -34,6 +34,12 @@ export interface InventoryItem {
   category: string;
   unitCost: number;
   unitPrice: number;
+    uom?: string;
+    deliveryCharges?: number;
+    otherCharges?: number;
+    margin?: number;
+    grossProfitPerUnit?: number;
+    netProfitPerUnit?: number;
   specifications: Record<string, any>; // JSONB
   description?: string;
   imageUrl?: string;
@@ -122,6 +128,7 @@ export interface ProposalLineItem {
   name: string;
   make: string;
   model: string;
+  uom?: string;
   price: number;
   specifications?: Record<string, any>;
   quantity: number;

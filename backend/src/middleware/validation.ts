@@ -89,9 +89,16 @@ export const schemas = {
     model: z.string().min(1),
     category: z.string().min(1),
     description: z.string().optional(),
+    // Backward compatibility: accept legacy "unit" and newer "uom"
     unit: z.string().optional(),
+    uom: z.string().optional(),
     unitCost: z.number().min(0),
     unitPrice: z.number().min(0),
+    deliveryCharges: z.number().min(0).optional(),
+    otherCharges: z.number().min(0).optional(),
+    margin: z.number().optional(),
+    grossProfitPerUnit: z.number().optional(),
+    netProfitPerUnit: z.number().optional(),
     specifications: z.record(z.any()).optional(),
   }),
 

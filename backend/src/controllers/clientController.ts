@@ -272,7 +272,7 @@ export class ClientController {
 
   /**
    * DELETE /api/clients/:id
-   * Soft delete a client
+   * Hard delete a client
    */
   static async delete(req: Request, res: Response) {
     const { id } = req.params;
@@ -286,12 +286,7 @@ export class ClientController {
       return res.status(404).json({ success: false, error: 'Client not found' });
     }
 
-    const updatedAt = new Date().toISOString();
-    await db.run(
-      'UPDATE clients SET isActive = 0, updatedAt = ? WHERE id = ?',
-      updatedAt,
-      id
-    );
+    await db.run('DELETE FROM clients WHERE id = ?', id);
 
     const auditData = {
       entity: 'Client',
@@ -317,7 +312,7 @@ export class ClientController {
 
     return res.json({
       success: true,
-      data: { ...mapClient(row), isActive: false, updatedAt },
+      data: mapClient(row),
       auditData,
     });
   }

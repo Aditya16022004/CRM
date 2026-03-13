@@ -3,7 +3,7 @@
  * Master catalog of devices (no stock tracking)
  */
 
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Plus, Pencil, Trash2, Eye } from 'lucide-react';
@@ -20,6 +20,97 @@ import {
 } from '@/components/ui/Dialog';
 import { Input } from '@/components/ui/Input';
 
+const UOM_OPTIONS = [
+  { code: 'EA',  label: 'Each' },
+  { code: 'NOS', label: 'Numbers' },
+  { code: 'PCS', label: 'Piece' },
+  { code: 'SET', label: 'Set' },
+  { code: 'PRS', label: 'Pair' },
+  { code: 'BX',  label: 'Box' },
+  { code: 'PKT', label: 'Packet' },
+  { code: 'LOT', label: 'Lot' },
+  { code: 'RLS', label: 'Roll' },
+  { code: 'M',   label: 'Meter' },
+  { code: 'RMT', label: 'Running Meter' },
+  { code: 'SQM', label: 'Square Meter' },
+  { code: 'FT',  label: 'Feet' },
+  { code: 'KG',  label: 'Kilogram' },
+];
+
+function UomCombobox({
+  value,
+  onChange,
+  disabled,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  disabled?: boolean;
+}) {
+  const [open, setOpen] = useState(false);
+  const [query, setQuery] = useState('');
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  const filtered = UOM_OPTIONS.filter(
+    (o) =>
+      o.code.toLowerCase().includes(query.toLowerCase()) ||
+      o.label.toLowerCase().includes(query.toLowerCase())
+  );
+
+  useEffect(() => {
+    function handleOutsideClick(e: MouseEvent) {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+        setOpen(false);
+        setQuery('');
+      }
+    }
+    document.addEventListener('mousedown', handleOutsideClick);
+    return () => document.removeEventListener('mousedown', handleOutsideClick);
+  }, []);
+
+  return (
+    <div ref={containerRef} className="relative">
+      <Input
+        disabled={disabled}
+        value={value}
+        autoComplete="off"
+        placeholder="e.g. EA, BX, M — or type custom"
+        onChange={(e) => {
+          onChange(e.target.value);
+          setQuery(e.target.value);
+          setOpen(true);
+        }}
+        onFocus={() => {
+          setQuery('');
+          setOpen(true);
+        }}
+      />
+      {open && !disabled && (
+        <ul className="absolute z-50 mt-1 w-full bg-white border border-slate-200 rounded-md shadow-lg max-h-56 overflow-auto text-sm">
+          {filtered.length > 0 ? (
+            filtered.map((o) => (
+              <li
+                key={o.code}
+                className="flex items-center gap-3 px-3 py-2 cursor-pointer hover:bg-primary-50"
+                onMouseDown={(e) => {
+                  e.preventDefault();
+                  onChange(o.code);
+                  setOpen(false);
+                  setQuery('');
+                }}
+              >
+                <span className="font-mono font-semibold text-primary-700 w-10 shrink-0">{o.code}</span>
+                <span className="text-slate-500">{o.label}</span>
+              </li>
+            ))
+          ) : (
+            <li className="px-3 py-2 text-slate-400 italic">No match — custom value will be used</li>
+          )}
+        </ul>
+      )}
+    </div>
+  );
+}
+
 type Device = {
   id: string;
   name: string;
@@ -27,9 +118,14 @@ type Device = {
   model: string;
   category: string;
   description?: string;
-  unit: string;
+    uom: string;
   unitCost: number;
   unitPrice: number;
+    deliveryCharges?: number;
+    otherCharges?: number;
+    margin?: number;
+    grossProfitPerUnit?: number;
+    netProfitPerUnit?: number;
   specifications?: Record<string, any>;
   createdAt?: string;
   updatedAt?: string;
@@ -41,9 +137,11 @@ type DeviceFormData = {
   model: string;
   category: string;
   description?: string;
-  unit: string;
+    uom: string;
   unitCost: string | number;
   unitPrice: string | number;
+    deliveryCharges: string | number;
+    otherCharges: string | number;
   specifications?: Record<string, any>;
 };
 
@@ -60,9 +158,11 @@ export function DevicesPage() {
     model: '',
     category: '',
     description: '',
-    unit: 'Unit',
+      uom: 'EA',
     unitCost: '',
     unitPrice: '',
+      deliveryCharges: '',
+      otherCharges: '',
     specifications: {},
   });
 
@@ -147,9 +247,11 @@ export function DevicesPage() {
         model: device.model,
         category: device.category,
         description: device.description || '',
-        unit: device.unit || 'Unit',
+          uom: device.uom || 'EA',
         unitCost: device.unitCost,
         unitPrice: device.unitPrice,
+          deliveryCharges: device.deliveryCharges ?? 0,
+          otherCharges: device.otherCharges ?? 0,
         specifications: device.specifications || {},
       });
     } else {
@@ -161,9 +263,11 @@ export function DevicesPage() {
         model: '',
         category: '',
         description: '',
-        unit: 'Unit',
+          uom: 'EA',
         unitCost: 0,
         unitPrice: 0,
+          deliveryCharges: 0,
+          otherCharges: 0,
         specifications: {},
       });
     }
@@ -189,6 +293,8 @@ export function DevicesPage() {
       ...formData,
       unitCost: typeof formData.unitCost === 'string' ? parseFloat(formData.unitCost) || 0 : formData.unitCost,
       unitPrice: typeof formData.unitPrice === 'string' ? parseFloat(formData.unitPrice) || 0 : formData.unitPrice,
+        deliveryCharges: typeof formData.deliveryCharges === 'string' ? parseFloat(formData.deliveryCharges) || 0 : formData.deliveryCharges,
+        otherCharges: typeof formData.otherCharges === 'string' ? parseFloat(formData.otherCharges) || 0 : formData.otherCharges,
     };
     if (editingDevice) {
       updateMutation.mutate({ id: editingDevice.id, data: submitData });
@@ -245,9 +351,15 @@ export function DevicesPage() {
                 <th className="px-6 py-3 text-left text-xs font-semibold text-white uppercase tracking-wider">
                   Category
                 </th>
+                  <th className="px-6 py-3 text-left text-xs font-semibold text-white uppercase tracking-wider">
+                    UOM
+                  </th>
                 <th className="px-6 py-3 text-left text-xs font-semibold text-white uppercase tracking-wider">
                   Unit Price
                 </th>
+                  <th className="px-6 py-3 text-left text-xs font-semibold text-white uppercase tracking-wider">
+                    Margin %
+                  </th>
                 <th className="px-6 py-3 text-right text-xs font-semibold text-white uppercase tracking-wider">
                   Actions
                 </th>
@@ -256,7 +368,7 @@ export function DevicesPage() {
             <tbody className="bg-white divide-y divide-slate-200">
               {isLoading ? (
                 <tr>
-                  <td colSpan={6} className="px-6 py-8 text-center text-slate-500">
+                    <td colSpan={8} className="px-6 py-8 text-center text-slate-500">
                     Loading devices...
                   </td>
                 </tr>
@@ -275,9 +387,15 @@ export function DevicesPage() {
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-700">
                       {device.category}
                     </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-700 font-mono">
+                        {device.uom || '—'}
+                      </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-900 font-medium">
                       ₹{device.unitPrice.toLocaleString()}
                     </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-700">
+                        {device.margin != null ? `${device.margin.toFixed(1)}%` : '—'}
+                      </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm space-x-2">
                       <Button
                         variant="ghost"
@@ -305,7 +423,7 @@ export function DevicesPage() {
                 ))
               ) : (
                 <tr>
-                  <td colSpan={6} className="px-6 py-8 text-center text-slate-500">
+                    <td colSpan={8} className="px-6 py-8 text-center text-slate-500">
                     No devices found. Add your first device to get started.
                   </td>
                 </tr>
@@ -356,9 +474,11 @@ export function DevicesPage() {
                           model: match.model,
                           category: match.category,
                           description: match.description || '',
-                          unit: match.unit || 'Unit',
+                            uom: match.uom || 'EA',
                           unitCost: match.unitCost,
                           unitPrice: match.unitPrice,
+                            deliveryCharges: match.deliveryCharges ?? 0,
+                            otherCharges: match.otherCharges ?? 0,
                           specifications: match.specifications || {},
                         });
                       }
@@ -429,14 +549,14 @@ export function DevicesPage() {
               </div>
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-2">
-                  Unit
+                  UOM (Unit of Measure)
                 </label>
-                <Input
+                <UomCombobox
                   disabled={viewOnly}
-                  value={formData.unit}
-                  onChange={(e) => setFormData({ ...formData, unit: e.target.value })}
-                  placeholder="e.g. Unit, Piece, Box"
+                    value={formData.uom}
+                    onChange={(v) => setFormData({ ...formData, uom: v })}
                 />
+                <p className="text-xs text-slate-500 mt-1">Select from the list or type a custom UOM code.</p>
               </div>
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-2">
@@ -472,6 +592,34 @@ export function DevicesPage() {
                   required
                 />
               </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-2">
+                    Delivery Charges / unit (₹)
+                  </label>
+                  <Input
+                    disabled={viewOnly}
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={formData.deliveryCharges}
+                    onChange={(e) => setFormData({ ...formData, deliveryCharges: e.target.value })}
+                    placeholder="e.g. 50"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-2">
+                    Other / Late-payment Charges / unit (₹)
+                  </label>
+                  <Input
+                    disabled={viewOnly}
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={formData.otherCharges}
+                    onChange={(e) => setFormData({ ...formData, otherCharges: e.target.value })}
+                    placeholder="e.g. 25"
+                  />
+                </div>
               <div className="col-span-2">
                 <label className="block text-sm font-medium text-slate-700 mb-2">
                   Description
@@ -484,6 +632,40 @@ export function DevicesPage() {
                   placeholder="Device description..."
                 />
               </div>
+                {/* ── Computed Financials ── */}
+                {(() => {
+                  const cost = parseFloat(String(formData.unitCost)) || 0;
+                  const price = parseFloat(String(formData.unitPrice)) || 0;
+                  const delivery = parseFloat(String(formData.deliveryCharges)) || 0;
+                  const other = parseFloat(String(formData.otherCharges)) || 0;
+                  const grossProfit = price - cost;
+                  const margin = cost > 0 ? (grossProfit / cost) * 100 : 0;
+                  const netProfit = grossProfit - delivery - other;
+                  const fmt = (n: number) => `₹${n.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+                  return (
+                    <div className="col-span-2 rounded-lg bg-slate-50 border border-slate-200 p-4">
+                      <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-3">Computed Financials (per unit)</p>
+                      <div className="grid grid-cols-2 gap-x-6 gap-y-2 text-sm">
+                        <div className="flex justify-between">
+                          <span className="text-slate-600">Gross Profit / Unit</span>
+                          <span className={`font-semibold ${grossProfit >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>{fmt(grossProfit)}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-slate-600">Margin %</span>
+                          <span className={`font-semibold ${margin >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>{margin.toFixed(2)}%</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-slate-600">Net Profit / Unit</span>
+                          <span className={`font-semibold ${netProfit >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>{fmt(netProfit)}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-slate-600">Total Deductions / Unit</span>
+                          <span className="font-semibold text-slate-700">{fmt(delivery + other)}</span>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })()}
               </div>
             </div>
             {!viewOnly && (

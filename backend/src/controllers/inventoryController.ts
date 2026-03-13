@@ -15,25 +15,55 @@ type InventoryItem = {
   id: string;
   name: string;
   description: string;
-  unit: string;
+    uom: string;
   category: string;
   make: string;
   model: string;
   unitCost: number;
   unitPrice: number;
+    deliveryCharges: number;
+    otherCharges: number;
+    // computed
+    margin: number;
+    grossProfitPerUnit: number;
+    netProfitPerUnit: number;
   specifications: Record<string, any>;
   isActive: boolean;
   createdAt: string;
   updatedAt: string;
 };
 
-function mapDevice(row: any): InventoryItem {
-  return {
-    ...row,
-    specifications: row.specifications ? JSON.parse(row.specifications) : {},
-    isActive: Boolean(row.isActive),
-  } as InventoryItem;
-}
+  function computeFinancials(unitCost: number, unitPrice: number, deliveryCharges: number, otherCharges: number) {
+    const grossProfitPerUnit = unitPrice - unitCost;
+    const margin = unitCost > 0 ? (grossProfitPerUnit / unitCost) * 100 : 0;
+    const netProfitPerUnit = grossProfitPerUnit - deliveryCharges - otherCharges;
+    return {
+      margin: Math.round(margin * 100) / 100,
+      grossProfitPerUnit: Math.round(grossProfitPerUnit * 100) / 100,
+      netProfitPerUnit: Math.round(netProfitPerUnit * 100) / 100,
+    };
+  }
+
+  function mapDevice(row: any): InventoryItem {
+    const unitCost = Number(row.unitCost ?? row.unitcost ?? 0);
+    const unitPrice = Number(row.unitPrice ?? row.unitprice ?? 0);
+    const deliveryCharges = Number(row.deliveryCharges ?? row.deliverycharges ?? 0);
+    const otherCharges = Number(row.otherCharges ?? row.othercharges ?? 0);
+    const computed = computeFinancials(unitCost, unitPrice, deliveryCharges, otherCharges);
+    return {
+      ...row,
+      uom: row.uom ?? '',
+      unitCost,
+      unitPrice,
+      deliveryCharges,
+      otherCharges,
+      margin: Number(row.margin ?? computed.margin),
+      grossProfitPerUnit: Number(row.grossProfitPerUnit ?? row.grossprofitperunit ?? computed.grossProfitPerUnit),
+      netProfitPerUnit: Number(row.netProfitPerUnit ?? row.netprofitperunit ?? computed.netProfitPerUnit),
+      specifications: row.specifications ? JSON.parse(row.specifications) : {},
+      isActive: Boolean(row.isActive ?? row.isactive),
+    } as InventoryItem;
+  }
 
 export class InventoryController {
   /**
@@ -78,6 +108,7 @@ export class InventoryController {
     const {
       name,
       description,
+      uom,
       unit,
       category,
       make,
@@ -85,6 +116,8 @@ export class InventoryController {
       unitCost,
       unitPrice,
       specifications = {},
+      deliveryCharges = 0,
+      otherCharges = 0,
     } = req.body;
 
     const now = new Date().toISOString();
@@ -93,16 +126,16 @@ export class InventoryController {
       id: randomUUID(),
       name,
       description: description ?? '',
-      unit: unit ?? 'Unit',
+      uom: uom ?? unit ?? 'EA',
       category,
       make,
       model,
       unitCost,
       unitPrice,
-      specifications: {
-        unit: unit ?? 'Unit',
-        ...specifications,
-      },
+      deliveryCharges: Number(deliveryCharges) || 0,
+      otherCharges: Number(otherCharges) || 0,
+      ...computeFinancials(Number(unitCost) || 0, Number(unitPrice) || 0, Number(deliveryCharges) || 0, Number(otherCharges) || 0),
+      specifications: { ...specifications },
       isActive: true,
       createdAt: now,
       updatedAt: now,
@@ -111,19 +144,25 @@ export class InventoryController {
     const db = await getDb();
     await db.run(
       `INSERT INTO devices (
-        id, name, description, unit, category, make, model,
-        unitCost, unitPrice, specifications, isActive, createdAt, updatedAt
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
-      ,
+          id, name, description, uom, category, make, model,
+          unitCost, unitPrice, deliveryCharges, otherCharges,
+          margin, grossProfitPerUnit, netProfitPerUnit,
+          specifications, isActive, createdAt, updatedAt
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)` ,
       item.id,
       item.name,
       item.description ?? null,
-      item.unit ?? null,
+        item.uom ?? null,
       item.category ?? null,
       item.make ?? null,
       item.model ?? null,
       item.unitCost,
       item.unitPrice,
+        item.deliveryCharges,
+        item.otherCharges,
+      item.margin,
+      item.grossProfitPerUnit,
+      item.netProfitPerUnit,
       JSON.stringify(item.specifications || {}),
       item.isActive ? 1 : 0,
       item.createdAt,
@@ -181,29 +220,32 @@ export class InventoryController {
     const {
       name = existing.name,
       description = existing.description,
-      unit = existing.unit,
+      uom = existing.uom,
+      unit,
       category = existing.category,
       make = existing.make,
       model = existing.model,
       unitCost = existing.unitCost,
       unitPrice = existing.unitPrice,
       specifications = existing.specifications,
+      deliveryCharges = existing.deliveryCharges,
+      otherCharges = existing.otherCharges,
     } = req.body;
 
     const updated: InventoryItem = {
       ...existing,
       name,
       description,
-      unit,
+      uom: uom ?? unit ?? existing.uom,
       category,
       make,
       model,
       unitCost,
       unitPrice,
-      specifications: {
-        unit,
-        ...specifications,
-      },
+      deliveryCharges: Number(deliveryCharges) || 0,
+      otherCharges: Number(otherCharges) || 0,
+      ...computeFinancials(Number(unitCost) || 0, Number(unitPrice) || 0, Number(deliveryCharges) || 0, Number(otherCharges) || 0),
+      specifications: { ...specifications },
       updatedAt: new Date().toISOString(),
     };
 
@@ -211,23 +253,33 @@ export class InventoryController {
       `UPDATE devices SET
         name = ?,
         description = ?,
-        unit = ?,
+          uom = ?,
         category = ?,
         make = ?,
         model = ?,
         unitCost = ?,
         unitPrice = ?,
+          deliveryCharges = ?,
+          otherCharges = ?,
+        margin = ?,
+        grossProfitPerUnit = ?,
+        netProfitPerUnit = ?,
         specifications = ?,
         updatedAt = ?
       WHERE id = ?`,
       updated.name ?? null,
       updated.description ?? null,
-      updated.unit ?? null,
+        updated.uom ?? null,
       updated.category ?? null,
       updated.make ?? null,
       updated.model ?? null,
       updated.unitCost,
       updated.unitPrice,
+        updated.deliveryCharges,
+        updated.otherCharges,
+      updated.margin,
+      updated.grossProfitPerUnit,
+      updated.netProfitPerUnit,
       JSON.stringify(updated.specifications || {}),
       updated.updatedAt,
       id
@@ -269,7 +321,7 @@ export class InventoryController {
 
   /**
    * DELETE /api/inventory/:id
-   * Soft delete a device (set isActive to false)
+   * Hard delete a device
    */
   static async delete(req: Request, res: Response) {
     const { id } = req.params;
@@ -283,12 +335,7 @@ export class InventoryController {
       return res.status(404).json({ success: false, error: 'Item not found' });
     }
 
-    const updatedAt = new Date().toISOString();
-    await db.run(
-      'UPDATE devices SET isActive = 0, updatedAt = ? WHERE id = ?',
-      updatedAt,
-      id
-    );
+    await db.run('DELETE FROM devices WHERE id = ?', id);
 
     const auditData = {
       entity: 'Device',
@@ -316,7 +363,7 @@ export class InventoryController {
 
     return res.json({
       success: true,
-      data: { ...mapDevice(row), isActive: false, updatedAt },
+      data: mapDevice(row),
       auditData,
     });
   }

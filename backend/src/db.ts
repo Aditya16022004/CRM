@@ -55,6 +55,10 @@ const columnAliasMap: Record<string, string> = {
   // Devices
   unitcost: 'unitCost',
   unitprice: 'unitPrice',
+  deliverycharges: 'deliveryCharges',
+  othercharges: 'otherCharges',
+  grossprofitperunit: 'grossProfitPerUnit',
+  netprofitperunit: 'netProfitPerUnit',
 
   // Proposals
   proposalnumber: 'proposalNumber',
